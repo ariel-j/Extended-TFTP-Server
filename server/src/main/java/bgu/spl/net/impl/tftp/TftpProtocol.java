@@ -22,6 +22,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>  {
     Connections<byte[]> connections;
     private boolean shouldTerminate;
     boolean loggedIn;
+    boolean finished;
     String filesPath;
     String wFile;
     byte[] file;
@@ -36,6 +37,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>  {
         filesPath = ".\\Files"; 
         file = null;
         wFile = null;
+        finished=true;
     }
     /*
      * to check if the packets are leagall
@@ -91,20 +93,21 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>  {
     // hundling methods
  
     private void handleRRQ(byte[] message){
+        System.out.println("enter handleRRQ");
         RRQ rrq = new RRQ(message);
         // Creating the file path
-        //Path filePath = Paths.get(filesPath, rrq.getFileName());
         File f = new File(filesPath + "\\" + rrq.getFileName());
         // Convert the file to a byte array and send it
         if(f.exists()) {
             try {
                 file = Files.readAllBytes(f.toPath());
+                System.out.println("file.length: " + file.length);
                 sendData(0);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-        else connections.send(connectionId, (new ERROR((short)1)).getByteArray()); //file not found
+        else {connections.send(connectionId, (new ERROR((short)1)).getByteArray());} //file not found
 
     }
 
@@ -125,7 +128,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>  {
     }
     
     private void handleData(byte[] msg) {
+        System.out.println("handeling data");
         DATA data = new DATA(msg);
+        System.out.println(Arrays.toString(data.getByteArray()));
         // Add the data to the file
         addToFile(data.getData(), data.getpactSize() + file.length);
         // If it was the last block:
@@ -169,15 +174,16 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>  {
 
 
     private void handleACK(byte[] msg){
+        System.out.println("handling ack");
         // file == null iff the ack is the last one        
         ACK ack = new ACK(msg);
-        if(file != null) sendData(ack.getBlockNum());    
+        System.out.println(Arrays.toString(ack.getByteArray()));
+        if(file != null ) sendData(ack.getBlockNum());
+        else if(!finished) {
+            connections.send(connectionId, (new DATA(new byte[0],(short)(ack.getBlockNum()+1))).getByteArray());
+            finished = true;
+        }   
     }
-
-
-    /*private void handleBCAST(byte[] msg){
-        connections.send(connectionId, (new BCAST(msg).getBytes()));
-    } */
 
     private void handleDELRQ(byte[] msg) {
         DELRQ delrq = new DELRQ(msg);
@@ -195,6 +201,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>  {
         holder.connectedUsernames.remove(connectionId);
         holder.ids_logins.remove(connectionId);
         this.loggedIn = false;
+        this.shouldTerminate =true;
         connections.send(connectionId, new ACK((short)0).getByteArray());
     }
 
@@ -211,17 +218,25 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>  {
     * @param block: the block number from the ack we got(meaning the last block that the client recived)
     */
     private void sendData(int block){
+        System.out.println("enter sendData, blockNum: " + block);
         //seting the range for the data to be hundled
         int start = 512 * block;
         int end = Math.min(start + 512, file.length);
+        System.out.println("start: " + start);
+        System.out.println("end: " + end);
         byte[] data = new byte[end-start];
         // Copying the data to send
         for(int i=start; i<end; i++) data[i-start] = file[i];
         //sending the packet to the clinet
-        connections.send(connectionId, (new DATA(data,(short)(block+1)).getByteArray()));
-
+        DATA d = new DATA(data,(short)(block+1));
+        connections.send(connectionId, (d.getByteArray()));
+        System.out.println(Arrays.toString(d.getByteArray()));
         // Finish sending
-        if(end == file.length) file = null;
+        if(end == file.length) {
+            file = null;
+            if(data.length == 512) finished = false;
+        }
+
     }
 
     private void logIn(byte[] msg) {

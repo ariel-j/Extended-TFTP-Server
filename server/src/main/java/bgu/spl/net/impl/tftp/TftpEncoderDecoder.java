@@ -99,11 +99,9 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
         pushByte(nextByte);
         if(twoBytes[0] == -1) {
             twoBytes[0] = nextByte;
-            System.out.println("0: " + twoBytes[0]);
         }
         else {
          twoBytes[1] = nextByte;
-         System.out.println("1: " +twoBytes[1]);
 
          return true;
         }
@@ -128,14 +126,15 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
         len++;
     }
 
-    private byte[] returnArray(){    
+    private byte[] returnArray(){   
+        byte[] output = Arrays.copyOf(bytes, len); 
         opCode = -1;
         twoBytes[0] = -1;
         len = 0;
         counter = 0;
         size = -1;
         start = true;
-        return bytes;
+        return output;
     }
      
 }   

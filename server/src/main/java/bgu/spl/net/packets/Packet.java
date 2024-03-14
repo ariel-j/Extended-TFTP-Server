@@ -6,7 +6,7 @@ abstract public class Packet {
 
 
     public Packet() {
-        bytes = new byte[1 << 10];
+        bytes = new byte[518];
         len = 0;
     }
 

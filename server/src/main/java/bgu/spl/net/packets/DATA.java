@@ -5,17 +5,18 @@ public class DATA extends Packet{
     short pactSize;
     byte[] data;
     
-    public DATA (byte[] bytesMsg){
+    public DATA (byte[] bytes){
         this.len = bytes.length;
-        this.bytes = bytesMsg;
-        this.pactSize = byteArrayToShort(new byte[]{bytesMsg[2], bytesMsg[3]});
-        this.blockNum = byteArrayToShort(new byte[]{bytesMsg[4], bytesMsg[5]});
+        this.bytes = bytes;
+        this.pactSize = byteArrayToShort(new byte[]{bytes[2], bytes[3]});
+        this.blockNum = byteArrayToShort(new byte[]{bytes[4], bytes[5]});
         this.data = new byte[len-6];
         setData();
     }
 
     public DATA(byte[] data, short blockNum){
         this.len = 0;
+        this.bytes = new byte[data.length + 6];
         this.blockNum = blockNum;
         this.pactSize = (short)data.length;
         this.data = data;
