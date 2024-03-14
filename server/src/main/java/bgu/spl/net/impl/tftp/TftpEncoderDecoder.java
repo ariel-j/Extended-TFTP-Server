@@ -10,21 +10,53 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
     int opCode = -1;  
     byte[] twoBytes = {-1,-1};
     int len = 0;
-    int [] cases = {1,1,3,4,1,6,1,1,1,6} ;
+    int [] cases = {-1,1,1,3,4,1,6,1,1,1,6} ;
     int counter=0, size=-1;
+    boolean start = true;
      
     @Override
     public byte[] decodeNextByte(byte nextByte) {
-        // First two bytes 
+        if(start) {
+            byte[] bytes = new byte[1 << 10];
+            start = false;
+        }
+        // First two bytes
         if(opCode == -1) findOpcode(nextByte);
         
         // Message content:
 
-        // Case opCode = 1/2/5/7/8/9
-        else if(opCode == 1) {
-            if(nextByte == 0) returnArray();
-            pushByte(nextByte);
+        else{
+            switch (opCode) {
+                case 1:         // Case opCode = 1/2/5/7/8/9
+                    pushByte(nextByte);
+                    if(nextByte == 0) return returnArray();
+                    break;
+                case 3:
+                    // Calculate size using bitwise operations
+                    if(size == -1) {
+                        if(insertTwoBytes(nextByte)) size = byteArrayToShort(twoBytes)+2;
+                    }
+                    
+                    else{
+                        pushByte(nextByte);
+                        counter++;
+                    }
+                     
+                    if(counter == size) {
+                        return returnArray();}
+                    break;
+                case 4:
+                    pushByte(nextByte);
+                    counter++;
+                    if(counter == 2) return returnArray();
+                    break;
+            }
         }
+            /*    
+            if(opCode == 1) {
+            pushByte(nextByte);
+            if(nextByte == 0) return returnArray();
+            }
 
         // Case opCode = 3
         else if (opCode == 3){
@@ -33,19 +65,19 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
                 pushByte(nextByte);
                 counter++;
             } 
-            if(counter == size) returnArray();
+            if(counter == size) return returnArray();
         }
 
         // Case opCode = 4
         else if(opCode == 4){
             pushByte(nextByte);
             counter++;
-            if(counter == 2) returnArray();
-        }
-        
+            if(counter == 2) return returnArray();
+            } */
+
         //case opCode = 6/10
         if(opCode == 6)
-        returnArray();
+            return returnArray();
 
     return null; 
     }
@@ -65,36 +97,44 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
 
     private boolean insertTwoBytes (byte nextByte){
         pushByte(nextByte);
-        if(twoBytes[0] == -1) twoBytes[0] = nextByte;
+        if(twoBytes[0] == -1) {
+            twoBytes[0] = nextByte;
+            System.out.println("0: " + twoBytes[0]);
+        }
         else {
          twoBytes[1] = nextByte;
+         System.out.println("1: " +twoBytes[1]);
+
          return true;
         }
         return false;
     }
-    
+    /*
     // converting short to byte array
     private byte[] shortToByteArray (short s) {
        return new byte []{(byte) (s >> 8) , ( byte ) ( s & 0xff ) };
 
-    } 
+    } */
+    
 
     // converting 2 byte array to a short
     private short byteArrayToShort (byte[] b){
-        return ( short ) ((( short ) bytes [0]) << 8 | ( short ) ( bytes [1]) );
+        return ( short ) ((( short ) b [0]) << 8 | ( short ) ( b [1]) & 0x00ff);
     }
 
     private void pushByte(byte nextByte) {
         if (len >= bytes.length) bytes = Arrays.copyOf(bytes, len * 2);
-        bytes[len++] = nextByte;
+        bytes[len] = nextByte;
+        len++;
     }
 
-    private byte[] returnArray(){
+    private byte[] returnArray(){    
         opCode = -1;
         twoBytes[0] = -1;
         len = 0;
         counter = 0;
         size = -1;
+        start = true;
         return bytes;
     }
      
