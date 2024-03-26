@@ -72,6 +72,6 @@ After running the client, you can interact with the TFTP server using the follow
 
 For more details on the project implementation, refer to the assignment instructions and code documentation.
 
-## Contributors
+## Authors:
 - Ariel Jayson
 - Yuval Nachman
