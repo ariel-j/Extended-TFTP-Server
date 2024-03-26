@@ -1,4 +1,4 @@
-# Extended TFTP Server and Client
+# Extended TFTP Server
 
 This project implements an extended Trivial File Transfer Protocol (TFTP) server. The TFTP server allows multiple users to upload and download files from the server and receive notifications when files are added or deleted. Communication between the server and clients is performed using a binary communication protocol, supporting the upload, download, and lookup of files.
 
